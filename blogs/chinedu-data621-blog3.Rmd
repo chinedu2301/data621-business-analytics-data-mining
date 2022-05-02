@@ -1,0 +1,44 @@
+---
+title: "Data621 Blog1 - Introduction to Linear Regression"
+author: "Chinedu Onyeka"
+date: "4/30/2022"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Introduction
+
+Linear Regression is a method that is used to predict the value of a variable $y$ by using another variable($x$) or variables. The variable(s) being used to predict $y$ are called independent variable(s), predictor variables, or features while the variable $y$ is often referred to as the dependent variable, target variable, or the response variable. Linear Regression is applicable in problems where the response variable is continous in nature. The predictor variables can be quantitative or qualitative.  
+**Simple Linear Regression: ** This is a type of linear regression problem in which the only one independent variable (only one predictor variable) is used to predict the response variable. The relationship can be given mathematically as: $y = \beta _{0} + \beta _{1}x_{1} + \epsilon$  
+**Multivariate Linear Regression: ** This is an approach to linear regression that uses more than one predictor variables to predict the response variable. This can be written mathematically as: $y = \beta _{0} + \beta _{1}x_{1} + \beta _{2}x_{2} + \beta _{3}x_{3} + ...+ \beta _{n}x_{n} +\epsilon$  
+<br>
+The goal of the linear regression model is to determine the best parameters $\beta_{i}$ that best fits the data points. In other words, Linear Regression seeks to obtain the line of best fit for the data points. 
+
+### Assumptions for Linear Regression  
+<li> **Linearity: ** There must be a linear relationship between the predictor variable(s) and the response variable. If a linear relationship does not exists, there is no point using a linear regression. Non-Linear relationships can be transformed to a linear relationship and then linear regression can be applied. </li> 
+<li> **Independence of Observations: ** This means that each observation in the dataset should be independent of one another. This is often difficult to obtain by looking at the dataset itself. The process of data collection is best suited to help us determine whether the data contains independent observations. </li> 
+<li> **Normality of Residuals: ** The residuals should follow a normal distribution. This can be tested using a histogram or a QQ Plot. </li>
+<li> **Homoscedacity: ** This means that there should be constant variance of the residuals. A plot of Fitted Values vs. Residuals can be used to check if the residuals have a constant variance. In the case where there is no constant variance of residuals, the dataset would be said to be heteroscedastic. There are different ways to deal with heteroscedascity such as log transformation or Box-Cox transformation. </li> 
+
+### Evaluating the Linear Regression Model
+After obtaining the best line of fit using the linear regression model, we often use certain metrics to evaluate how well the model performs. Below are some metrics that can be used to evaluate the performance of a regression model:  
+<li> **R-Squared and Adjusted R-Squared: **  This tells us the percentage of variations in the response variable that is explained by the predictor variables. This is a relative measure of fit.</li>  
+<li> **Mean Absolute Error (MAE): ** This is the mean of the absolute value of the difference between the predicted values and the actual values. This tells us the amount of error that we can expect from the predicted values. The MAE is generally less sensitive to outliers. Also, lower values of MAE indicate a better performing model. This has the advantage of being in the same unit as the response variable that makes it easy to interpret. </li> 
+<li> **Mean Square Error (MSE): ** This is the mean of the square of errors. It is the mean of the square of the difference between the predicted values and actual values. It has the disadvantage of not being in the same unit as the response variable and thus making it hard to interpret. </li> 
+<li> **Root Mean Square Error (RMSE): ** This is the square root of the mean square error. It is the square root of the mean of squared difference between the predicted value and the actual values. This is an absolute measure of fit and has the advantage of being in the same unit as the response variable thereby making it easy to interpret. Just like MAE, lower values of RMSE indicates a better fit, but it is more sensitive to outliers. </li>
+
+#### References
+Diez, D., Barr, C. D., & Cetinkaya-Rundel, M. (2019). OpenIntro statistics 4th Edition.  
+<br>
+
+
+
+
+
+
+

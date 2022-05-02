@@ -1,0 +1,674 @@
+---
+title: "Data 621 Assignment 4"
+author: Mark Gonsalves, Joshua Hummell, Claire Meyer, Chinedu Onyeka, Rathish Parayil
+  Sasidharan
+date: "April 12th, 2022"
+output:
+  pdf_document: default
+  prettydoc::html_pretty:
+    theme: cayman
+    highlight: github
+  html_document:
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+<center> <h3> **Overview** </h3> </center>
+In this homework assignment, you will explore, analyze and model a data set containing approximately 8000 records representing a customer at an auto insurance company. Each record has two response variables. The first response variable, TARGET_FLAG, is a 1 or a 0. A “1” means that the person was in a car crash. A zero means that the person was not in a car crash. The second response variable is TARGET_AMT. This value is zero if the person did not crash their car. But if they did crash their car, this number will be a value greater than zero.  
+Your objective is to build multiple linear regression and binary logistic regression models on the training data to predict the probability that a person will crash their car and also the amount of money it will cost if the person does crash their car. You can only use the variables given to you (or variables that you derive from the variables provided). Below is a short description of the variables of interest in the data set:  
+<center>
+<img src = "https://github.com/chinedu2301/data621-business-analytics-data-mining/blob/main/assignments/assignment4/variable-image.png?raw=true" />
+</center>  
+
+<center> <h3> **1. Data Exploration** </h3> </center>
+
+
+Describe the size and the variables in the insurance training data set. Consider that too much detail will cause a manager to lose interest while too little detail will make the manager consider that you aren’t doing your job. Some suggestions are given below. Please do NOT treat this as a check list of things to do to complete the assignment. You should have your own thoughts on what to tell the boss. These are just ideas.  
+a. Mean / Standard Deviation / Median  
+b. Bar Chart or Box Plot of the data  
+c. Is the data correlated to the target variable (or to other variables?)  
+d. Are any of the variables missing and need to be imputed “fixed”?  
+  
+**Required Libraries**  
+```{r load-libraries, message=FALSE, warning=FALSE}
+library(tidyverse)
+library(Amelia)
+library("naniar")
+library(pROC)
+library(visdat)
+library(cowplot)
+library(corrplot)
+library(kableExtra)
+library(Hmisc)
+library(caTools)
+library(car)
+library(caret)
+library(lmtest)
+library("MASS")
+```
+
+**Load the data from github**  
+```{r get-data, message=FALSE, warning=FALSE}
+#url_train <- "https://raw.githubusercontent.com/chinedu2301/data621-business-analytics-data-mining/main/assignments/assignment4/insurance_training_data.csv"
+#url_eval <- "https://raw.githubusercontent.com/chinedu2301/data621-business-analytics-data-mining/main/assignments/assignment4/insurance-evaluation-data.csv"
+url_train <- "insurance_training_data .csv"
+url_eval  <- "insurance-evaluation-data.csv"
+training <- read_csv(url_train)
+evaluation <- read_csv(url_eval)
+```
+
+**Check the head of training dataset**  
+```{r training-head}
+head(training, 10)
+```
+**Get the dimension of the training dataset**  
+```{r training-dimension}
+dim(training)
+```
+
+**Get a glimpse of the training dataset** 
+```{r training-glimpse}
+glimpse(training)
+```
+
+**Summary Statistics** - Mean and median of numerical columns are shown below:  
+```{r training-summary-statistics}
+summary(training) %>% kbl() %>% kable_styling()
+```
+
+<center>
+#### <b>Understand the data using visuals</b>  
+</center>
+
+**Target Flag - Was Car in a crash? 1=YES, 0=NO**  
+```{r target-flag-bar}
+# plot a bar chart to show the distribution of car crash
+target_flag <- training %>% ggplot(aes(x = as.factor(TARGET_FLAG), fill = as.factor(TARGET_FLAG))) + 
+    geom_bar(width = 0.5) + theme_bw() + 
+    geom_text(stat = 'count', aes(label = ..count..), vjust = 1, color = "white", size = 3.2) +
+    scale_fill_manual("Was in Crash?", values = c("0" = "#3CB371", "1" = "#FF5349")) +
+    theme(panel.grid.major = element_line(colour = "khaki2",
+    linetype = "blank"), plot.title = element_text(face = "bold",
+    hjust = 0.5), panel.background = element_rect(fill = "lightgoldenrodyellow"),
+    plot.background = element_rect(fill = "antiquewhite")) +labs(title = "Was Car in a car crash? 1=Yes, 0 = No",
+    x = "Target Flag", y = NULL) + theme(panel.grid.minor = element_line(linetype = "blank"),
+    plot.title = element_text(face = "plain"),
+    legend.title = element_text(size = 7),
+    legend.position = c(0.92, 0.85)) + theme(panel.grid.major = element_line(size = 0.2,
+    linetype = "solid"))
+
+# display the chart
+target_flag
+```
+
+**Car crash by Gender** 
+```{r car-crash-gender}
+# clean the SEX column
+training$SEX <- gsub("z_", "", training$SEX)
+
+# plot the gender distribution
+car_crash_gender <- training %>% filter(TARGET_FLAG == 1) %>% ggplot(aes(x = as.factor(SEX), 
+                                                                         fill = as.factor(SEX))) + 
+    geom_bar(width = 0.5) + theme_bw() + 
+    geom_text(stat = 'count', aes(label = ..count..), vjust = 1, color = "white", size = 3.2) +
+    scale_fill_manual("Gender", values = c("F" = "#FF66CC", "M" = "#87CEEB")) +
+    theme(panel.grid.major = element_line(colour = "khaki2",
+    linetype = "blank"), plot.title = element_text(face = "bold",
+    hjust = 0.5), panel.background = element_rect(fill = "lightgoldenrodyellow"),
+    plot.background = element_rect(fill = "antiquewhite")) +labs(title = "Car crash by Gender",
+    x = "Gender", y = NULL) + theme(panel.grid.minor = element_line(linetype = "blank"),
+    plot.title = element_text(face = "plain"),
+    legend.title = element_text(size = 7),
+    legend.position = c(0.95, 0.86)) + theme(panel.grid.major = element_line(size = 0.2,
+    linetype = "solid"))
+car_crash_gender
+```
+
+**Age Distribution**  
+```{r age-distribution, warning=FALSE}
+# plot the age distribution of individuals involved in a crash
+age_crash <- training %>% filter(TARGET_FLAG == 1) %>% ggplot(aes(x = AGE)) + 
+    geom_histogram(binwidth = 2, fill = "#FF5349") + theme_bw() +
+    theme(panel.grid.major = element_line(colour = "khaki2",
+    linetype = "blank"), plot.title = element_text(face = "bold",
+    hjust = 0.5), panel.background = element_rect(fill = "lightgoldenrodyellow"),
+    plot.background = element_rect(fill = "antiquewhite")) +
+    labs(title = "Age Distribution - Car crash",
+    x = "Age", y = NULL) + theme(panel.grid.minor = element_line(linetype = "blank"),
+    plot.title = element_text(face = "plain"),
+    legend.title = element_text(size = 7),
+    legend.position = c(0.95, 0.86)) + theme(panel.grid.major = element_line(size = 0.2,
+    linetype = "solid"))
+
+# plot the age distribution of individuals not involved in a crash
+age_no_crash <- training %>% filter(TARGET_FLAG == 0) %>% ggplot(aes(x = AGE)) + 
+    geom_histogram(binwidth = 2, fill = "#3CB371") + theme_bw() +
+    theme(panel.grid.major = element_line(colour = "khaki2",
+    linetype = "blank"), plot.title = element_text(face = "bold",
+    hjust = 0.5), panel.background = element_rect(fill = "lightgoldenrodyellow"),
+    plot.background = element_rect(fill = "antiquewhite")) +
+    labs(title = "Age Distribution - No Car crash",
+    x = "Age", y = NULL) + theme(panel.grid.minor = element_line(linetype = "blank"),
+    plot.title = element_text(face = "plain"),
+    legend.title = element_text(size = 7),
+    legend.position = c(0.95, 0.86)) + theme(panel.grid.major = element_line(size = 0.2,
+    linetype = "solid"))
+
+# display the plots
+plot_grid(age_no_crash, age_crash)
+```
+
+**Car crash by Car Type** 
+```{r car-crash-car-type}
+# clean the CAR_TYPE column
+training$CAR_TYPE <- gsub("z_", "", training$CAR_TYPE)
+
+# plot the gender distribution
+car_crash_car_type <- training %>% filter(TARGET_FLAG == 1) %>% ggplot(aes(x = as.factor(CAR_TYPE), 
+                                                                         fill = as.factor(CAR_TYPE))) + 
+    geom_bar(width = 0.5) + theme_bw() + scale_fill_discrete(name = "Car Type") +
+    geom_text(stat = 'count', aes(label = ..count..), vjust = 1, color = "white", size = 3.2) +
+    theme(panel.grid.major = element_line(colour = "khaki2",
+    linetype = "blank"), plot.title = element_text(face = "bold",
+    hjust = 0.5), panel.background = element_rect(fill = "lightgoldenrodyellow"),
+    plot.background = element_rect(fill = "antiquewhite")) +labs(title = "Car crash by Car Type",
+    x = "Car Type", y = NULL) + theme(panel.grid.minor = element_line(linetype = "blank"),
+    plot.title = element_text(face = "plain"),
+    legend.title = element_text(size = 7),
+    legend.position = c(0.91, 0.76)) + theme(panel.grid.major = element_line(size = 0.2,
+    linetype = "solid"))
+car_crash_car_type
+```
+
+**Missing Values**  
+*Visualize the missing data using the Amelia package*
+```{r check-for-missing-values, warning =  FALSE}
+# check for NA values using the missmap function from Amelia package
+missmap(training, main = "Insurance Training Dataset - Missing Values",
+        col = c("yellow", "black"), margins = c(8,5))
+
+
+
+```
+
+*Visualize the percentage of missingness in each column using the nanair package*
+```{r missing-val-nanair}
+# visualize missing values and the percentage of missingness for each column
+training %>% dplyr::select(-INDEX) %>% vis_miss(sort_miss = TRUE)
+```
+
+
+*Visualize the missing values using visdat package*  
+```{r missing-values-visdat}
+# visualize the missing values and their data type using vis_dat
+vis_dat(training)
+```
+
+**Clean the dataset**  
+```{r}
+# Create a function to remove "$", "," and convert to numeric
+clean_money = function(in_col) {
+  # this function accepts a currency column and removes any occurrence of "$" and "," and converts it to numeric
+  remove_dollar_sign = gsub("\\$", "", in_col) 
+  remove_comma = gsub(",", "", remove_dollar_sign) 
+  out_col <- as.numeric(remove_comma) 
+  return(out_col)
+}
+
+# Create a function to remove "z_" and "<"
+remove_z = function(in_col){
+  # this function accepts a column and removes any occurrence of the strings "z_" or "<" from the column
+  rem_z <- gsub("z_", "", in_col)
+  out_col <- gsub("<", "", rem_z)
+  return (out_col)
+}
+
+# apply the cleaning functions to the applicable columns in the training dataset
+training <- training %>% mutate_at(c("INCOME","HOME_VAL","BLUEBOOK","OLDCLAIM"), clean_money) %>% 
+  mutate_at(c("EDUCATION","JOB","CAR_TYPE","URBANICITY", "MSTATUS"), remove_z)
+
+head(training, 10)
+```
+
+**Correlation**
+```{r correlation}
+# select only numeric columns excluding the INDEX column
+corr_data <- select_if(training, is.numeric) %>% dplyr::select(-INDEX)
+# get the correlation 
+training_corr = corr_data %>% cor(corr_data, use = "na.or.complete" )
+# define the color pallete to use in the correlation plot
+col <- colorRampPalette(c("#4477AA", "#77AADD", "#FFFFFF", "#EE9988", "#BB4444"))
+# get the matrix of p_values using the rcorr function from the Hmisc package
+p_mat <- rcorr(as.matrix(corr_data))$P
+# correlation plot
+corrplot(training_corr, method="color", col=col(200),  
+         type="upper", order="hclust", 
+         addCoef.col = "black", # Add coefficient of correlation
+         number.cex = 0.6,
+         tl.col="black", tl.srt=45, #Text label color and rotation
+         # Combine with significance
+         p.mat = p_mat, sig.level = 0.01, insig = "blank", 
+         # hide correlation coefficient on the principal diagonal
+         diag=FALSE 
+         )
+```
+
+<center> <h3> **2. Data Preparation** </h3> </center>
+
+Describe how you have transformed the data by changing the original variables or creating new variables. If you did transform the data or create new variables, discuss why you did this. Here are some possible transformations.
+
+c. Transform data by putting it into buckets  
+d. Mathematical transforms such as log or square root (or use Box-Cox)  
+e. Combine variables (such as ratios or adding or multiplying) to create new variables  
+
+To start, we want to address the missing data. We see there is missing data from 6 fields. 3 job-related fields: Job, YOJ, Income, and 3 others: Age, Car Age, and Home Value. We can replace 'Job' with None, and the Income and YOJ with 0 - it's plausible there are unemployed folks in this dataset. For the second 3, we can use the mean. 
+
+We also want to remove Target_AMT, because it is only showing values where TARGET_FLAG = 1, and INDEX because we won't use it.
+
+```{r na-remove}
+training_clean = training
+training <- subset(training, select = -c(INDEX, TARGET_AMT))
+training2 <- subset(training_clean, select = -c(INDEX))
+
+
+training$JOB[is.na(training$JOB)] <- 'None'
+training$INCOME[is.na(training$INCOME)] <- 0
+training$YOJ[is.na(training$YOJ)] <- 0
+
+training$HOME_VAL[is.na(training$HOME_VAL)] <- mean(training$HOME_VAL,na.rm=TRUE)
+training$AGE[is.na(training$AGE)] <- mean(training$AGE,na.rm=TRUE)
+training$CAR_AGE[is.na(training$CAR_AGE)] <- mean(training$CAR_AGE,na.rm=TRUE)
+
+
+training2$JOB[is.na(training2$JOB)] <- 'None'
+training2$INCOME[is.na(training2$INCOME)] <- 0
+training2$YOJ[is.na(training2$YOJ)] <- 0
+
+training2$HOME_VAL[is.na(training2$HOME_VAL)] <- mean(training2$HOME_VAL,na.rm=TRUE)
+training2$AGE[is.na(training2$AGE)] <- mean(training2$AGE,na.rm=TRUE)
+training2$CAR_AGE[is.na(training2$CAR_AGE)] <- mean(training2$CAR_AGE,na.rm=TRUE)
+
+sum(is.na(training))
+sum(is.na(training2))
+```
+
+We don't see evidence of collinearity in the correlation plot, so we can move on to creating a few transformations. We'll create Claims/TIF, Claims/Car Age, and TIF/Car Age. 
+
+```{r na-remove}
+training$claims_tif <- training$CLM_FREQ / training$TIF
+training$claims_age <- training$CLM_FREQ / training$CAR_AGE
+training$tif_age <- training$TIF / training$CAR_AGE
+```
+
+Finally, we'll split the dataset to get ready for model development: 
+
+```{r}
+set.seed(315)
+
+split <- sample.split(training$TARGET_FLAG, SplitRatio = 0.8)
+
+split2 <- sample.split(training2$TARGET_AMT, SplitRatio = 0.8)
+
+training_set <- subset(training, split == TRUE)
+test_set <- subset(training, split == FALSE)
+
+
+training_set2 <- subset(training2, split2 == TRUE)
+test_set2 <- subset(training2, split2 == FALSE)
+```
+
+
+
+
+
+<center> <h2> **Logistic Models** </h2> </center>
+<center> <h3> **3. Build Models** </h3> </center>
+
+Using the training data set, build at least two different multiple linear regression models and three different binary logistic regression models, using different variables (or the same variables with different transformations). You may select the variables manually, use an approach such as Forward or Stepwise, use a different approach such as trees, or use a combination of techniques. Describe the techniques you used. If you manually selected a variable for inclusion into the model or exclusion into the model, indicate why this was done.  
+
+Discuss the coefficients in the models, do they make sense? For example, if a person has a lot of traffic tickets, you would reasonably expect that person to have more car crashes. If the coefficient is negative (suggesting that the person is a safer driver), then that needs to be discussed. Are you keeping the model even though it is counter intuitive? Why? The boss needs to know.  
+
+First, let's build our logistic regression models. To start, we build a version using all fields. AIC is quite high, with several fields with low p-values.
+
+```{r model-1}
+logit_1 <- glm(TARGET_FLAG~., family = binomial,data = training_set)
+
+summary(logit_1)
+```
+
+Let's create a second model using backward selection. This approach leaves us with KIDSDRIV, 
+HOMEKIDS, INCOME, PARENT1, HOME_VAL, MSTATUS, EDUCATION, JOB, TRAVTIME, CAR_USE, BLUEBOOK, TIF, CAR_TYPE, OLDCLAIM, CLM_FREQ, REVOKED, MVR_PTS, and URBANICITY. 
+
+```{r model-2, warning=FALSE}
+
+
+logit_2 <- step(logit_1, trace = FALSE) # backward selection (if you don't specify anything)
+```
+
+```{r}
+summary(logit_2)
+```
+
+One potentially counterintuitive coefficient here is OLDCLAIM - which suggests there is a negative relationship between the $ of a claim and the likelihood to crash. This could be to do with the car value, however. 
+
+Lastly, we can try a version that just focuses on the proportional transformation fields. This results in a much higher AIC value, though both `claims_` fields had low p-values.
+
+```{r model-3}
+logit_3 <- glm(TARGET_FLAG ~ claims_tif + claims_age + tif_age, family = binomial,data = training_set)
+summary(logit_3)
+```
+
+
+
+
+<center> <h3> **4. Select Models** </h3> </center>
+Decide on the criteria for selecting the best multiple linear regression model and the best binary logistic regression model. Will you select models with slightly worse performance if it makes more sense or is more parsimonious? Discuss why you selected your models. For the multiple linear regression model, will you use a metric such as Adjusted R2, RMSE, etc.? Be sure to explain how you can make inferences from the model, discuss multi-collinearity issues (if any), and discuss other relevant model output. Using the training data set, evaluate the multiple linear regression model based on (a) mean squared error, (b) R2, (c) F-statistic, and (d) residual plots. For the binary logistic regression model, will you use a metric such as log likelihood, AIC, ROC curve, etc.? Using the training data set, evaluate the binary logistic regression model based on (a) accuracy, (b) classification error rate, (c) precision, (d) sensitivity, (e) specificity, (f)
+F1 score, (g) AUC, and (h) confusion matrix. Make predictions using the evaluation data set.  
+
+
+
+
+
+
+We will evaluate each model as they were created, so the first one we will predict with is the logistic model with all fields.
+
+```{r}
+test_clean = test_set
+
+
+test_set[ ,"probability.all"] <- predict(logit_1, test_clean, type="response")
+test_set[ ,"class.all"] <- ifelse(test_set$probability.all < 0.5, 0, 1)
+cm1 <- confusionMatrix(as.factor(test_set$class.all), as.factor(test_set$TARGET_FLAG), positive = "1")
+cm1
+```
+
+
+```{r, echo=FALSE}
+
+paste0("The model using all of the columns with no changes had the following metrics, Accuracy: ",round(cm1$overall[1],4)," | Error Rate: ",round((1-cm1$overall[1]),4)," | Precision: ",round(cm1$byClass[3],4)," | Sensitivity: ", round(cm1$byClass[1],4), " | Specificity: ", round(cm1$byClass[4],4), " | F1 Score: ",round(cm1$byClass[7],2), " | AUC: ", round(pROC::auc(test_set$class.all,test_set$TARGET_FLAG ),2))
+
+```
+
+
+The next is the Logistic model using Backwards Selection. 
+```{r}
+
+test_set[ ,"probability.back"] <- predict(logit_2, test_clean, type="response")
+test_set[ ,"class.back"] <- ifelse(test_set$probability.back < 0.5, 0, 1)
+cm1 <- confusionMatrix(as.factor(test_set$class.back), as.factor(test_set$TARGET_FLAG), positive = "1")
+cm1
+```
+
+```{r, echo=FALSE}
+
+paste0("The model using all of the columns with no changes had the following metrics, Accuracy: ",round(cm1$overall[1],4)," | Error Rate: ",round((1-cm1$overall[1]),4)," | Precision: ",round(cm1$byClass[3],4)," | Sensitivity: ", round(cm1$byClass[1],4), " | Specificity: ", round(cm1$byClass[4],4), " | F1 Score: ",round(cm1$byClass[7],2), " | AUC: ", round(pROC::auc(test_set$class.back,test_set$TARGET_FLAG ),2))
+
+```
+
+The final is the Logistic model using transformed fields Selection. 
+```{r}
+
+test_set[ ,"probability.tr"] <- predict(logit_3, test_clean, type="response")
+test_set[ ,"class.tr"] <- ifelse(test_set$probability.tr < 0.5, 0, 1)
+cm1 <- confusionMatrix(as.factor(test_set$class.tr), as.factor(test_set$TARGET_FLAG), positive = "1")
+cm1
+```
+
+```{r, echo=FALSE}
+
+paste0("The model using all of the columns with no changes had the following metrics, Accuracy: ",round(cm1$overall[1],4)," | Error Rate: ",round((1-cm1$overall[1]),4)," | Precision: ",round(cm1$byClass[3],4)," | Sensitivity: ", round(cm1$byClass[1],4), " | Specificity: ", round(cm1$byClass[4],4), " | F1 Score: ",round(cm1$byClass[7],2), " | AUC: ", round(pROC::auc(test_set$class.tr,test_set$TARGET_FLAG ),2))
+
+```
+
+We can see in these models that the most accurate was the backward selection model. We will use that on the test data after we evaluate the Linear Models. 
+
+
+<center> <h2> **Linear Models** </h2> </center>
+<center> <h3> **3. Build Models** </h3> </center>
+
+
+Then we can build our multiple linear regression models. Again, we'll first start with a model using all fields. The Adjusted R-Squared value is quite low at 7%.
+
+```{r model-4}
+mlm_1 <- lm(TARGET_AMT~.,data = training_set2)
+
+summary(mlm_1)
+```
+
+For our final model, we'll repeat our backwards selection process on the Multiple Linear Regression model. Interestingly, the model lands on near identical fields to the logistic regression, with the addition of SEX and YOJ. The inclusion of YOJ is somewhat surprising - relative to other fields, it seems much less likely to influence outcome, though higher YOJ leads to less likelihood to crash. 
+
+
+```{r model-5, warning=FALSE}
+mlm_2 <- step(mlm_1, trace = FALSE)
+```
+
+```{r}
+summary(mlm_2)
+```
+
+
+
+
+<center> <h3> **4. Select Models** </h3> </center>
+
+
+The first is the linear model with everything selected.
+
+We will begin by checking for multicollinearity:
+```{r}
+dwtest(mlm_1)
+```
+
+The null hypothesis is that there does not exist autocorrelation (multicollinearity). Since the p-value is large, we fail to reject the null hypothesis.
+
+Mean Square Error and RMSE
+
+```{r, echo = FALSE}
+
+sum1 = summary(mlm_1)
+
+data.frame("MODEL" = c("mlm_1"),
+  "MSE" = c(sum1$sigma^2),
+  "RMSE" = c(sum1$sigma),
+  "R.SQUARED" = c(sum1$r.squared),
+  "ADJ.R.SQUARED" = c(sum1$adj.r.squared),
+  rbind(sum1$fstatistic)
+  
+  )
+  
+
+```
+The Mean Squared Error is the square of the RMSE. The benefit of using the RMSE is that it is expressed in the same units as the target variable. For these models, we see that standard error of the mean (RMSE) is 3926 off, signifying that the model needs a bit of work. Part of the issue is that we need to make sure it is not calculating amount unless there is a crash. 
+
+\[R^2\] represents the percent change in \[Y\] explained by the predictor variables with \[R^2\] 1 indicating a perfect model, since ours is .29, it does need some work.  Adjusted \[R^2\] is more appropriate for this model since it has multiple variables. It incorporates a penalty to account for the decrease in degrees of freedom (from additional variables). The penalty did not improve the evaluation in this case, it is slightly lower. 
+
+
+The F-test evaluates the null hypothesis that all regression coefficients are equal to zero versus the alternative that at least one does not. At an\[\alpha=2.2e-16\] the F-statistic indicates that the model fits the data better than the intercept-only model.
+
+Now let's take a look at the Residuals
+
+```{r}
+par(mfrow = c(2,2))
+plot(mlm_1)
+```
+This shows that there is very little error at the lower end of amount and it is due to us filtering for 0s in the test set (based on backward step model from the logistic section). Now let's compare the model with the test data. 
+
+```{r}
+test_set[ ,"msm1.ALL"] <- predict(mlm_1, newdata = test_clean)
+
+test_set$msm1.ALL[test_set$class.back == 0 ] = 0
+
+paste0("The Root Sqaure Mean Error for model one is: ", round(sqrt(mean((test_set$TARGET_AMT - test_set$msm1.ALL)^2)),2))
+
+
+plot(x=test_set$msm1.ALL, y= test_set$TARGET_AMT,
+     xlab='Predicted Values',
+     ylab='Actual Values',
+     main='Predicted vs. Actual Values')
+abline(a=0, b=1)
+
+```
+
+Again it shows there is no error at the low end of amount but there is some variation at the higher end. Now let's compare the same with model two
+
+The second and final is the linear model using the backwards selection
+
+
+
+We will begin by checking for multicollinearity:
+```{r}
+dwtest(mlm_2)
+```
+
+The null hypothesis is that there does not exist autocorrelation (multicollinearity). Since the p-value is large, we fail to reject the null hypothesis.
+
+Mean Square Error and RMSE
+
+```{r, echo = FALSE}
+
+sum2 = summary(mlm_2)
+
+data.frame("MODEL" = c("mlm_1"),
+  "MSE" = c(sum2$sigma^2),
+  "RMSE" = c(sum2$sigma),
+  "R.SQUARED" = c(sum2$r.squared),
+  "ADJ.R.SQUARED" = c(sum2$adj.r.squared),
+  rbind(sum2$fstatistic)
+  
+  )
+  
+
+```
+The Mean Squared Error is the square of the RMSE. The benefit of using the RMSE is that it is expressed in the same units as the target variable. For these models, we see that standard error of the mean (RMSE) is 3922, which is slighlt better than model 1, signifying that the model needs a bit of work. Part of the issue is that we need to make sure it is not calculating amount unless there is a crash. 
+
+\[R^2\] represents the percent change in \[Y\] explained by the predictor variables with \[R^2\] 1 indicating a perfect model, since ours is .29, it does need some work.  Adjusted \[R^2\] is more appropriate for this model since it has multiple variables. It incorporates a penalty to account for the decrease in degrees of freedom (from additional variables). The penalty did not improve the evaluation in this case, it is slightly lower. But, again we see that it better than model 1.
+
+
+The F-test evaluates the null hypothesis that all regression coefficients are equal to zero versus the alternative that at least one does not. At an\[\alpha=2.2e-16\] the F-statistic indicates that the model fits the data better than the intercept-only model.
+
+Now let's take a look at the Residuals
+
+```{r}
+par(mfrow = c(2,2))
+plot(mlm_2)
+```
+This shows that there is very little error between the residuals and fitted by all accounts. The worry here is that we overfitted the model. So let's compare the model with the test data. 
+
+```{r}
+test_set[ ,"msm2.ALL"] <- predict(mlm_2, newdata = test_clean)
+
+test_set$msm2.ALL[test_set$class.back == 0 ] = 0
+
+paste0("The Root Sqaure Mean Error for model one is: ", round(sqrt(mean((test_set$TARGET_AMT - test_set$msm2.ALL)^2)),2))
+
+
+plot(x=test_set$msm2.ALL, y= test_set$TARGET_AMT,
+     xlab='Predicted Values',
+     ylab='Actual Values',
+     main='Predicted vs. Actual Values')
+abline(a=0, b=1)
+
+```
+The RSME is slightly lower than the model, so we will work with this model, despite there being much of a difference. 
+
+
+<center> <h4> **Top Model Evaluation** </h4> </center>
+
+
+**Clean the dataset**  
+```{r}
+# apply the cleaning functions to the applicable columns in the training dataset
+evaluation <- evaluation %>% mutate_at(c("INCOME","HOME_VAL","BLUEBOOK","OLDCLAIM"), clean_money) %>% 
+  mutate_at(c("EDUCATION","JOB","CAR_TYPE","URBANICITY", "MSTATUS"), remove_z)
+
+head(evaluation, 10)
+```
+
+
+```{r}
+evaluation <- evaluation %>% dplyr::select(-c(TARGET_AMT, INDEX, TARGET_FLAG))
+
+evaluation$JOB[is.na(evaluation$JOB)] <- 'None'
+evaluation$INCOME[is.na(evaluation$INCOME)] <- 0
+evaluation$YOJ[is.na(evaluation$YOJ)] <- 0
+
+evaluation$HOME_VAL[is.na(evaluation$HOME_VAL)] <- mean(evaluation$HOME_VAL,na.rm=TRUE)
+evaluation$AGE[is.na(evaluation$AGE)] <- mean(evaluation$AGE,na.rm=TRUE)
+evaluation$CAR_AGE[is.na(evaluation$CAR_AGE)] <- mean(evaluation$CAR_AGE,na.rm=TRUE)
+
+evaluation$SEX
+
+evaluation$SEX <- gsub("z_", "", evaluation$SEX)
+
+sum(is.na(evaluation))
+```
+
+
+```{r}
+evaluation$claims_tif <- evaluation$CLM_FREQ / evaluation$TIF
+evaluation$claims_age <- evaluation$CLM_FREQ / evaluation$CAR_AGE
+evaluation$tif_age <- evaluation$TIF / evaluation$CAR_AGE
+```
+
+
+
+```{r}
+evaluation$TARGET_perc <- predict(logit_2, evaluation, type="response")
+evaluation$TARGET_FLAG <- ifelse(evaluation$TARGET_perc < 0.5, 0, 1)
+
+evaluation <- evaluation %>% dplyr::select(-TARGET_perc)
+
+evaluation$TARGET_AMT <- predict(mlm_2, newdata = evaluation)
+
+evaluation$TARGET_AMT[evaluation$TARGET_FLAG == 0 ] = 0
+
+write.csv(evaluation,"C:/Users/humme/Downloads/insurance-evaluation-data_final.csv", row.names = FALSE)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

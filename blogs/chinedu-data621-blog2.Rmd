@@ -1,0 +1,40 @@
+---
+title: "Data621 Blog2 - Multicollinearity"
+author: "Chinedu Onyeka"
+date: "5/1/2022"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Introduction
+Multicollinearity occurs in a regression model when two or more predictor variables are highly correlated. This means that a predictor variable in the regression model can be predicted from another predictor variable. The presence of multicollinearity can adversely affect the regression model because we cannot differentiate between the individual effects of the predictor variables on the response variable because the predictor variables change in unison. Multicollinearity reduces the precision of the estimated parameters of the regression model which weakens the statistical power of the regression model. Hence, it is difficult to trust the p-values to identify independent variables that are statistically significant.  
+Some of the likely causes of multicollinearity include but not limited to the following: Including identical predictor variables in the datasets such as having Age and Year of birth, or having weight in different units (kg or lbs); Including predictor variables that are dependent on another predictor variable(s); and incorrect use of dummy variables.
+
+### Detecting Multicollinearity  
+There are different ways for detecting or testing for multicollinearity. A more common way of testing for multicollinearity is the Variance Inflation Factor (VIF) method. The VIF estimates how much the variance of a regression coefficient is inflated due to multicollinearity in the model. It determines the strength of the correlation between the predictor variables and it is estimated by taking a predictor variable and regressing it against other predictor variables in the model. This gives the R-Squared values for each predictor variable regressed against other predictor variables. The R-squared values are then plugged into the VIF formula to obtain the VIF values for each predictor. $VIF = \frac{1}{1-R^{2}}$  
+The VIF value ranges from 1 upwards with no upper bound. The value tells you in decimal form what percentage of the variance is inflated for each coefficient. e.g a VIF of 1.7 indicates that the variance of a particular coefficient is 70% bigger than what would normally get if there was no multicollinearity.   
+In general, a VIF of 1 indicates no correlation between the predictor variable and other predictor variables while a VIF between 1 and 5 indicates moderate correlation, and a VIF of above 5 indicates high correlation.
+
+### Fixing Multicollinearity
+There are different ways to deal with multicollinearity. Some of the potential ways of dealing with this are:
+<li> Removing or dropping some of the highly correlated predictor variables.</li>
+<li> Combining the highly correlated predictor variables.</li>
+<li> Perform Principal components analysis (PCA) or partial least squares (PLS) regression. </li>
+
+
+#### References
+A. (2020, April 16). Multicollinearity | Detecting Multicollinearity with VIF. Analytics Vidhya. https://www.analyticsvidhya.com/blog/2020/03/what-is-multicollinearity/  
+Frost, J. (2021, September 24). Multicollinearity in Regression Analysis: Problems, Detection, and Solutions. Statistics By Jim. https://statisticsbyjim.com/regression/multicollinearity-in-regression-analysis/
+
+
+
+
+
+
+
+
