@@ -1,7 +1,7 @@
 ---
-title: "Data621 Blog1 - Introduction to Linear Regression"
+title: "Data621 Blog3 - Logistic Regression and Classification Metrics"
 author: "Chinedu Onyeka"
-date: "4/30/2022"
+date: "5/3/2022"
 output:
   pdf_document: default
   html_document: default
@@ -13,26 +13,38 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## Introduction
 
-Linear Regression is a method that is used to predict the value of a variable $y$ by using another variable($x$) or variables. The variable(s) being used to predict $y$ are called independent variable(s), predictor variables, or features while the variable $y$ is often referred to as the dependent variable, target variable, or the response variable. Linear Regression is applicable in problems where the response variable is continous in nature. The predictor variables can be quantitative or qualitative.  
-**Simple Linear Regression: ** This is a type of linear regression problem in which the only one independent variable (only one predictor variable) is used to predict the response variable. The relationship can be given mathematically as: $y = \beta _{0} + \beta _{1}x_{1} + \epsilon$  
-**Multivariate Linear Regression: ** This is an approach to linear regression that uses more than one predictor variables to predict the response variable. This can be written mathematically as: $y = \beta _{0} + \beta _{1}x_{1} + \beta _{2}x_{2} + \beta _{3}x_{3} + ...+ \beta _{n}x_{n} +\epsilon$  
+ Logistic Regression is a type of classification algorithm that is used when the response variable is binary in nature. Being binary means that the response variable is a two level categorical variable. The Logistic Regression model belongs to the family of generalized linear models (GLMs) and it's used when the response is a two-level categorical variable. Typical examples of binary response variables are Yes/No; Male/Female; Cancer/No Cancer; Approve/Deny, etc. These response variables are often coded as 1 or 0. Even though the name contains regression, the logistic regression model is often used when the response variable is discrete. i.e It is a classification algorithm.  
+Logistic Regressions must not necessarily be binary as there are possible situations where there are more than two-level categories in the response variables and such situations are regarded as multinomial logistic regression which is beyond the scope of this article.  
+The logistic regression model relates the probability that a response variable would be successful to the predictors $x_{1, i}, x_{2, i}, ..., x_{k, i}$ through a framework like that of multiple regression:  
+$logit(p_{i}) = log_{e}(\frac{p_{i}}{1-p_{i}}) = \beta_{0} + \beta_{1}x_{1,i} + \beta_{2}x_{2,i} + ... + \beta_{k}x_{k,i}$
+
+### Assumptions for Logistic Regression  
+<li> Each outcome of the response variable is independent of the other outcomes. </li> 
+<li> The response variable must follow a binomial distribution. </li> 
+<li> Each predictor $x_{i}$ is linearly related to the $logit(p_{i})$ if other predictors are held constant. </li>
+
+### Evaluating the Logistic Regression Model
+After obtaining and fitting the logistic regression model, we often use certain metrics to evaluate how well the model performs. Below are some metrics that can be used to evaluate the performance of a logistic regression model:  
+<center>
+<img src="https://github.com/chinedu2301/data621-business-analytics-data-mining/blob/main/blogs/confusion-matrix.png?raw=true" />  
+source: https://www.debadityachakravorty.com/ai-ml/cmatrix/
+</center>  
 <br>
-The goal of the linear regression model is to determine the best parameters $\beta_{i}$ that best fits the data points. In other words, Linear Regression seeks to obtain the line of best fit for the data points. 
+The type of metrics to be used depends on the situation.
+<li> **Accuracy: **  This is the most common measure used to evaluate a classification model. Accuracy is the ratio of correctly classified observations to the total. This tells us the percentage of observations that our model is correctly classifying.   
+$accuracy = \frac{TP + TN}{TP+FP+TN+FN}$  
+Accuracy is great for symmetric datasets and when the cost of false positives and false negatives are similar.</li>  
+<li> **Precision: ** This is the percentage of the results that are relevant. It is computed by calculating the number of true positives (TP) divided by all positively classified observations by the model (both TP and FP). The precision tells us the percentage of observations that are actually positive from all positively classified observations by the model. i.e a precision of 90% means that of all the observations that are classified as positive by our model, only 90% of those are actually positive which means that the model correctly classified the positive cases in 90% of the cases.  
+$precision = \frac{TP}{TP+FP}$  
+We use precision when we want to be more confident about our true positives. For example, in spam/ham emails, you want to be sure that the email is spam before putting it in the spam box. </li> 
+<li> **Recall (Sensitivity): ** The recall is also regarded as the sensitivity of the model. This refers to the percentage of total relevant results that are correctly classified by the model. Essentially, it means the ratio of the number of positively classified observations to the total number of actual positives both those correctly classified and incorrectly classified by the model (TP and FN). It is computed by dividing the number of true positives by the total number of observations that are actually positive (whether correctly classified by the model or not). The Recall also known as Sensitivity tells us what proportion of the positive class got correctly classified. i.e What percentage of cancer patients got correctly classified as cancer patients by the model. A recall of 95% means that of all the actually positive cases, only 95% were correctly classified by the model.  
+$recall = \frac{TP}{TP+FN}$  
+We use recall when having a false positive is way better than having a false negative. for example, you want to tell someone that they have cancer (FP) which in fact they don't instead of telling them that they don't have cancer(FN) when infact they have it. It would be disastrous to give a False Negative to a cancer patient because they would probably have had time to ameliorate the situation if they had been informed earlier. The recall is better when the cost of false negatives is unacceptable. i.e. False positive is better than false negative.</li> 
+<li> **F1 Score: ** This is the harmonic mean of the precision and recall. It is also called F-score or F-Measure.  
+$F1 = \frac{2 * precision * recall}{precision + recall}$  
+F1 is best for uneven distribution and it can be used to compare different models.</li>
 
-### Assumptions for Linear Regression  
-<li> **Linearity: ** There must be a linear relationship between the predictor variable(s) and the response variable. If a linear relationship does not exists, there is no point using a linear regression. Non-Linear relationships can be transformed to a linear relationship and then linear regression can be applied. </li> 
-<li> **Independence of Observations: ** This means that each observation in the dataset should be independent of one another. This is often difficult to obtain by looking at the dataset itself. The process of data collection is best suited to help us determine whether the data contains independent observations. </li> 
-<li> **Normality of Residuals: ** The residuals should follow a normal distribution. This can be tested using a histogram or a QQ Plot. </li>
-<li> **Homoscedacity: ** This means that there should be constant variance of the residuals. A plot of Fitted Values vs. Residuals can be used to check if the residuals have a constant variance. In the case where there is no constant variance of residuals, the dataset would be said to be heteroscedastic. There are different ways to deal with heteroscedascity such as log transformation or Box-Cox transformation. </li> 
-
-### Evaluating the Linear Regression Model
-After obtaining the best line of fit using the linear regression model, we often use certain metrics to evaluate how well the model performs. Below are some metrics that can be used to evaluate the performance of a regression model:  
-<li> **R-Squared and Adjusted R-Squared: **  This tells us the percentage of variations in the response variable that is explained by the predictor variables. This is a relative measure of fit.</li>  
-<li> **Mean Absolute Error (MAE): ** This is the mean of the absolute value of the difference between the predicted values and the actual values. This tells us the amount of error that we can expect from the predicted values. The MAE is generally less sensitive to outliers. Also, lower values of MAE indicate a better performing model. This has the advantage of being in the same unit as the response variable that makes it easy to interpret. </li> 
-<li> **Mean Square Error (MSE): ** This is the mean of the square of errors. It is the mean of the square of the difference between the predicted values and actual values. It has the disadvantage of not being in the same unit as the response variable and thus making it hard to interpret. </li> 
-<li> **Root Mean Square Error (RMSE): ** This is the square root of the mean square error. It is the square root of the mean of squared difference between the predicted value and the actual values. This is an absolute measure of fit and has the advantage of being in the same unit as the response variable thereby making it easy to interpret. Just like MAE, lower values of RMSE indicates a better fit, but it is more sensitive to outliers. </li>
-
-#### References
+### References
 Diez, D., Barr, C. D., & Cetinkaya-Rundel, M. (2019). OpenIntro statistics 4th Edition.  
 <br>
 
