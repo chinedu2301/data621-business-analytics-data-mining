@@ -1,0 +1,60 @@
+---
+title: "Data621 Blog4 - Underfitting and Overfitting"
+author: "Chinedu Onyeka"
+date: "5/4/2022"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Introduction
+In supervised machine learning problems, we aim to get a model that properly fits the training data and also generalizes well on new/test data. When the model is unable to generalize on new data, it is not able to perform its purpose. One of such causes could be as a result of underfitting or overffiting.  
+<li> **Undefitting: ** This is a situation in machine learning where a model does not properly fit the training data resulting in high training error and high test error. In this case, the model performs poorly on the training data as well as on new data.  An underfit machine learning model is not a suitable model for the data because it is not able to properly capture the relationship between the input examples (X) and the target values (Y).Poor performance on the training data could mean that the model is too simple to describe the target properly. A typical example of an underfit model is using a linear model for data points with quadratic relationship.  
+Since the model cannot generalize well on new data, it cannot be leveraged for prediction or classification tasks. High bias and low variance are good indicators of underfitting. </li>
+<li> **Overfitting: ** This is simply the opposite of underfitting. It is a situation in machine learning where a model properly fits the training data, but performs poorly on new datasets thereby resulting in low training error, but high test error. It involves good performance on training data, but poor performance on new/test data. The model is essentially learning the noise and details in the training data and memorizing it such that it can not generalize to unseen data. A typical example of overfitting is fitting a quadratic function with a cubic or higher order polynomial model. High variance and low bias are indicators of overfitting. </li>  
+<br>
+
+<center>
+<img src = "https://github.com/chinedu2301/data621-business-analytics-data-mining/blob/main/blogs/underfitting-overfitting-aws.png?raw=true" />
+source: https://docs.aws.amazon.com/machine-learning/latest/dg/model-fit-underfitting-vs-overfitting.html
+</center>
+<br>
+
+## Reducing Underfitting  
+There are different ways to decrease underfitting such are:
+<li>Increase model complexity. It could be that the selected model is too simple and a more complex model may be required.</li>
+<li>Perform feature selection/feature engineering. </li>
+<li>Increase the duration of training to get better results.</li>
+<li>Decrease the amount of regularization used.</li>
+
+## Reducing Overfitting
+
+<li>Reduce the model complexity. It could be that the model is too complex and a simpler model is required.</li>
+<li>Increase the amount of training data</li>
+<li>Perform feature selection: Reduce the number of features</li>
+<li>Increase the amount of regularization</li>
+<li>Early stopping in the training</li>
+<li>Perform cross validation</li>
+<li>Use ensemble methods</li>
+
+
+### References
+Education, I. C. (2021, March 25). Underfitting. IBM Cloud Learn. Retrieved May 4, 2022, from https://www.ibm.com/cloud/learn/underfitting  
+
+Model Fit: Underfitting vs. Overfitting - Amazon Machine Learning. (n.d.). Amazon Machine Learning Developer Guide. Retrieved May 4, 2022, from https://docs.aws.amazon.com/machine-learning/latest/dg/model-fit-underfitting-vs-overfitting.html  
+
+GeeksforGeeks. (2021, October 20). ML | Underfitting and Overfitting. Retrieved May 4, 2022, from https://www.geeksforgeeks.org/underfitting-and-overfitting-in-machine-learning/  
+
+Brownlee, J. (2019, August 12). Overfitting and Underfitting With Machine Learning Algorithms. Machine Learning Mastery. Retrieved May 4, 2022, from https://machinelearningmastery.com/overfitting-and-underfitting-with-machine-learning-algorithms/#:%7E:text=Overfitting%3A%20Good%20performance%20on%20the,poor%20generalization%20to%20other%20data
+<br>
+
+
+
+
+
+
+
